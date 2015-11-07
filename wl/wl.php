@@ -3,6 +3,21 @@
 Plugin Name: WL Framework
 #Author: Fabio Vergani
 */
+$UrlReferer=$_SERVER['HTTP_REFERER'];
+$UrlAdmin=get_admin_url();
+$UrlSite=get_site_url();
+
+$etAdminBar=function($f){
+ add_action('wp_before_admin_bar_render',function()use(&$f){
+	$o=$GLOBALS['wp_admin_bar'];
+	foreach(['edit','wp-logo','updates','comments','new-content','site-name','customize'] as $i){$o -> remove_menu($i);};
+	$f($o);
+ },0);
+};
+
+$etArgMenu=function($r,$s,$a,$b,$c='_self'){return array($r=>$s,'title'=>$a,'href'=>$b,'meta'=>array('target'=>$c));};
+
+#Go:
 if(is_admin()){
  add_action('admin_init',function(){
 	remove_action('init','wp_version_check');
@@ -45,12 +60,17 @@ if(is_admin()){
 		$s='welcome_panel';
 		remove_action($s,'wp_'.$s);
 		add_action($s,function(){
-		 $m=['<div id="welcome-panel"><style scoped>a.dashicons{vertical-align:middle;width:auto;font:1em/1em sans-serif;margin-left:.4em;}a.dashicons:before{font-family:dashicons;margin-right:.2em;}</style>'];
+		 $m=[
+			'<div id="welcome-panel">',
+			 '<style scoped>',
+				'a.dashicons{vertical-align:middle;width:auto;font:1em/1em sans-serif;margin-left:.4em;}',
+				'a.dashicons:before{font-family:dashicons;margin-right:.2em;}',
+			 '</style>'
+		 ];
 		 foreach([
 			['admin-comments','edit-comments.php?comment_status=moderated','Modera i commenti'],
 			['admin-tools','tools.php','Tools'],
-			['edit','edit.php?post_status=draft&post_type=post','Drafts']
-			/*,
+			['edit','edit.php?post_status=draft&post_type=post','Drafts']/*,
 			 ['admin-post','edit.php','article'],
 			 ['admin-media','upload.php','media'],
 			 ['admin-page','edit.php?post_type=page','page'],
@@ -68,7 +88,7 @@ if(is_admin()){
 		$o->remove_help_tabs();
 	 }else{//notDashboard!
 		$t=($o->get_help_sidebar());
-		$t=preg_replace('/<p>(<a.*wordpress\.org.*>Forum.+<\/a>|<strong>Per maggiori informazioni:</strong>)<\/p>/i','',$t);
+		$t=preg_replace('/<p>(<a.*wordpress\.org.*>Forum.+<\/a>|<s.*>Per maggiori informazioni:</s.*>)<\/p>/i','',$t);
 		$t=join('',[
 		 '<p style="font-size:12px;white-space:pre;">',
 			'Screen-id: <b>',$id,'</b>',"\r\n",
@@ -83,7 +103,9 @@ if(is_admin()){
 	 unset($Content_HelpSideBar);
 	#HelpTab:DebugInformations
 	 if((wp_get_current_user()->user_login)=='admin'){
-		$t=function($a,$b,$c,$d)use($o){$o->add_help_tab(array('id'=>$a,'title'=>$b,'content'=>'<pre>'.($d?var_export($c,true):$c).'</pre>'));};
+		$t=function($a,$b,$c,$d)use($o){
+		 $o->add_help_tab(array('id'=>$a,'title'=>$b,'content'=>'<pre>'.($d?var_export($c,true):$c).'</pre>'));
+		};
 		$f=function($a,$b,$c)use($t){$t($a,$b,$c,true);};
 		if($_GET['gdmp']==1){
 		 $f('globals','Globals',$GLOBALS);
@@ -100,13 +122,12 @@ if(is_admin()){
 	 unset($t,$o);
 	});//end:AdminHead
  });//end:AdminInit
-#Menu:RemovePage
  add_action('admin_menu',function(){
 	foreach([
 	 'tools.php',
 	 'index.php',
 	 'users.php',
-	'upload.php',
+	 'upload.php',
 	 'plugins.php',
 	 'edit-comments.php',
 	 'edit.php?post_type=page'
@@ -114,23 +135,12 @@ if(is_admin()){
 	 remove_menu_page($i);
 	};
  });
-#Menu:Customize
- add_action('wp_before_admin_bar_render',function(){
-	global $wp_admin_bar;
-	$o=$wp_admin_bar;
-	foreach([
-	 'wp-logo',
-	 'comments',
-	 'new-content',
-	 'updates','site-name'
-	] as $i){
-	 $o -> remove_menu($i);
-	};
-	$f=function($r,$s,$title,$href,$target='_self'){return array($r=>$s,'title'=>$title,'href'=>$href,'meta'=>array('target'=>$target));};
+ $etAdminBar(function(&$o)use($UrlSite,$UrlAdmin,&$etArgMenu){
+	$f=$etArgMenu;
 	$k='thesite';
-	$t=get_site_url();
+	$t=$UrlSite;
 	$o -> add_menu($f('id',$k,'Sito',$t,'_blank'));
-	$t=admin_url();
+	$t=$UrlAdmin;
 	$o -> add_menu($f('parent',$k,'Plugin',$t.'/plugins.php'));
 	$o -> add_menu($f('parent',$k,'Utenti',$t.'/users.php'));
 	$o -> add_menu($f('parent',$k,'Esporta',$t.'/export.php'));
@@ -140,30 +150,15 @@ if(is_admin()){
 	$t.='/edit.php?post_type=page';
 	$o -> add_menu($f('id','pages','Pagine',$t));
 	$o -> add_menu($f('parent','pages','View as tree...',$t.'&page=cms-tpv-page-page/'));
- },0);
-
+ });
+}else{//NonAdmin!
+ $etAdminBar(function(&$o)use($UrlAdmin,$UrlReferer,&$etArgMenu){
+	$f=$etArgMenu;
+	$o -> add_menu($f('id','backtoreferer','Back to Referer',$UrlReferer));
+	$o -> add_menu($f('id','backtodashboard','Dashboard',$UrlAdmin));
+	$o -> add_menu($f('id','editcurrentpost','Edit',$UrlAdmin.'post.php?post='.get_the_ID().'&action=edit'));
+ });
 };
-/*
-else{//NonAdmin!
-	$page=$GLOBALS['pagenow'];
-	if(in_array($page,array('wp-login.php','wp-register.php'))){
-	 add_action('login_enqueue_scripts',function(){echo '<style type="text/css">.login h1{display:none}</style>';});
-	/ *
-	 oppure rimuovilo manualmente in:
-	 .\site\wp-login.php
-	 .\site\wp-admin\install.php
-	 .\site\wp-admin\upgrade.php
-	 .\site\wp-admin\setup-config.php
-	 .\site\wp-admin\maint\repair.php
-	* /
-	}else{
-	 switch($page){
-		case 'pippo':echo("");break;
-		//default:echo("");
-	 }
-	};
-	unset($page);
-};
-#echo('done');
-*/
+unset($UrlReferer,$UrlAdmin,$UrlSite,$etAdminBar);
+#Done.
 ?>
