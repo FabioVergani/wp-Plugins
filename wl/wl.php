@@ -104,7 +104,7 @@ if(is_admin()){
 	#HelpTab:DebugInformations
 	 if((wp_get_current_user()->user_login)=='admin'){
 		$t=function($a,$b,$c,$d)use($o){
-		 $o->add_help_tab(array('id'=>$a,'title'=>$b,'content'=>'<pre>'.($d?var_export($c,true):$c).'</pre>'));
+		 $o->add_help_tab(array('id'=>$a,'title'=>$b,'content'=>'<pre>'.($d?print_r($c,true):$c).'</pre>'));//print_r||var_export
 		};
 		$f=function($a,$b,$c)use($t){$t($a,$b,$c,true);};
 		if($_GET['gdmp']==1){
@@ -160,5 +160,7 @@ if(is_admin()){
  });
 };
 unset($UrlReferer,$UrlAdmin,$UrlSite,$etAdminBar);
+#FixCustomPostQueryVars(All)
+add_action('pre_get_posts',function($q){if($q->is_category||$q->is_tag){$m=&$q->query_vars;$i='post_type';if(empty($m[$i])){$m[$i]='any';};};});
 #Done.
 ?>
