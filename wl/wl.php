@@ -135,6 +135,8 @@ if(is_admin()){
 	 remove_menu_page($i);
 	};
  });
+ add_filter('hidden_meta_boxes',function($e){return array_merge($e,array('postexcerpt','slugdiv'));});
+ add_filter('post_row_actions',function($e){$p='view';$e[$p]=preg_replace('/<a(.*?)>/','<a$1 target=\"_blank\">&nearr;&nbsp;',$e[$p]);return $e;});
  $etAdminBar(function(&$o)use($UrlSite,$UrlAdmin,&$etArgMenu){
 	$f=$etArgMenu;
 	$k='thesite';
