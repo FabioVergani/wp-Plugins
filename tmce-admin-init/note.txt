@@ -1,0 +1,24 @@
+<?php
+
+
+  tinyMCE.init({
+      mode : "textareas",
+      theme : "advanced",
+      force_br_newlines : false,
+      force_p_newlines : false,
+      forced_root_block : '',
+  });
+
+
+	add_filter('tiny_mce_before_init',function($o){
+		$o['forced_root_block']='';
+		$o['force_br_newlines']=true;
+		$o['force_p_newlines']=false;
+		return $o;
+	});
+
+remove_filter( 'the_content', 'wpautop' );
+remove_filter( 'the_excerpt', 'wpautop' );
+
+
+add_filter('the_content',function($a){return strtr($a,array('<p>['=>'[',']</p>'=>']',']<br />'=>']'));});
